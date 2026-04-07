@@ -1,10 +1,11 @@
+fastapi
+uvicorn
+pydantic
 pandas
 numpy
 scikit-learn
-mlflow
-fastapi
-uvicorn
-streamlit
 requests
-plotly
+streamlit
 psutil
+plotly
+mlflow

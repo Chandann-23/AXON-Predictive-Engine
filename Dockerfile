@@ -1,21 +1,22 @@
-FROM python:3.11-slim
+# Use the official Python 3.10-slim image as the base
+FROM python:3.10-slim
 
+# Set the working directory within the container to /app
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
+# Copy the requirements file into the container
 COPY requirements.txt .
+
+# Install the necessary dependencies specified in requirements.txt
+# --no-cache-dir is used to keep the image size small
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy all the project files from the current directory into the container
 COPY . .
 
-# Expose ports for FastAPI (8000) and Streamlit (8501)
-EXPOSE 8000
-EXPOSE 8501
+# Expose port 10000 to allow network traffic to the container
+EXPOSE 10000
 
-# Add execution permissions to entrypoint script
-RUN chmod +x entrypoint.sh
-
-# Run both using the entrypoint script
-CMD ["./entrypoint.sh"]
+# Command to start the FastAPI server using uvicorn
+# Binds to 0.0.0.0 and listens on port 10000
+CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "10000"]
