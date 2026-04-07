@@ -7,6 +7,7 @@ import psutil
 import time
 import plotly.graph_objects as go
 import random
+import numpy as np
 
 # Page configuration
 st.set_page_config(
@@ -113,6 +114,9 @@ st.markdown("""
 if 'prev_cpu' not in st.session_state: st.session_state.prev_cpu = 50.0
 if 'prev_ram' not in st.session_state: st.session_state.prev_ram = 50.0
 if 'history' not in st.session_state: st.session_state.history = []
+if 'telemetry_history' not in st.session_state: st.session_state.telemetry_history = []
+if 'last_result' not in st.session_state: st.session_state.last_result = None
+if 'inference_latency' not in st.session_state: st.session_state.inference_latency = 0.0
 
 st.markdown('<div class="nav-container"></div>', unsafe_allow_html=True)
 
@@ -120,23 +124,32 @@ st.markdown('<div class="nav-container"></div>', unsafe_allow_html=True)
 def get_prediction(cpu, ram, temp, latency):
     API_URL = "https://axon-predictive-engine.onrender.com/predict"
     payload = {"cpu": cpu, "ram": ram, "temp": temp, "latency": latency}
+    start_time = time.time()
     try:
-        # Crucial: Use 'params=payload' for GET requests
         response = requests.get(API_URL, params=payload, timeout=5)
+        st.session_state.inference_latency = (time.time() - start_time) * 1000 # in ms
         if response.status_code == 200:
-            return response.json()
+            result = response.json()
+            st.session_state.last_result = result
+            return result
     except Exception as e:
         print(f"AXON API Error: {e}")
     return None
 
+def check_api_health():
+    HEALTH_URL = "https://axon-predictive-engine.onrender.com/" # Assuming base URL is health check
+    try:
+        response = requests.get(HEALTH_URL, timeout=3)
+        return response.status_code == 200
+    except:
+        return False
+
 def render_dashboard_content(cpu, ram, temp, latency, result):
     # Determine Probability using SAFE .get() method
-    # Change "prediction" to "failure_probability" only if your app.py specifically uses that key
     prob = 0.0
     status = "Unknown"
     
     if result:
-        # We try both common keys to be safe
         prob = result.get("failure_probability", 0.0) 
         status = result.get("status", "STABLE")
 
@@ -149,6 +162,14 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
                 <span style="font-weight: 800; font-size: 0.9rem; color: rgba(255,255,255,0.8);">{led_text}</span>
             </div>
         """, unsafe_allow_html=True)
+
+        # Update Telemetry History
+        timestamp = time.strftime("%H:%M:%S")
+        st.session_state.telemetry_history.append({
+            "timestamp": timestamp,
+            "failure_probability": prob * 100
+        })
+        st.session_state.telemetry_history = st.session_state.telemetry_history[-30:]
 
     col1, col2 = st.columns([1, 1], gap="large")
     
@@ -167,6 +188,7 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
             """, unsafe_allow_html=True)
             
             if "feature_importance" in result:
+                st.subheader("🔍 Dynamic Risk Drivers")
                 fi_data = result["feature_importance"]
                 df_fi = pd.DataFrame({"Feature": list(fi_data.keys()), "Importance": list(fi_data.values())}).sort_values(by="Importance")
                 fig_fi = px.bar(df_fi, x="Importance", y="Feature", orientation='h', color_discrete_sequence=['#00d4ff'])
@@ -185,10 +207,81 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
         st.metric("LATENCY", f"{latency:.1f}ms")
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # 📈 Global Risk Trajectory & AI Predictive Horizon
+    st.markdown("---")
+    st.subheader("📈 Global Risk Trajectory & AI Predictive Horizon", 
+                 help="This represents the expected system stress if current telemetry trends continue.")
+    
+    if st.session_state.telemetry_history:
+        df_hist = pd.DataFrame(st.session_state.telemetry_history)
+        
+        # Base historical chart
+        fig_hist = go.Figure()
+        
+        # Historical Trace
+        fig_hist.add_trace(go.Scatter(
+            x=df_hist["timestamp"], 
+            y=df_hist["failure_probability"],
+            mode='lines+markers',
+            name='Historical Risk',
+            line=dict(color='#00d4ff', width=3),
+            marker=dict(size=6)
+        ))
+        
+        # AI Predictive Horizon Forecasting
+        if len(st.session_state.telemetry_history) > 10:
+            y = df_hist["failure_probability"].values
+            x = np.arange(len(y))
+            
+            # Simple linear trend (slope and intercept)
+            m, b = np.polyfit(x, y, 1)
+            
+            # Forecast next 5 points
+            x_forecast = np.arange(len(y), len(y) + 5)
+            y_forecast = m * x_forecast + b
+            y_forecast = np.clip(y_forecast, 0, 100) # Keep within 0-100%
+            
+            # Forecast labels (e.g., Last, T+1, T+2...)
+            last_timestamp = df_hist["timestamp"].iloc[-1]
+            forecast_labels = [last_timestamp] + [f"T+{i+1}" for i in range(5)]
+            
+            # Include last point for continuity
+            y_forecast_continuous = np.concatenate(([y[-1]], y_forecast))
+            
+            # Add Predicted Path Trace
+            fig_hist.add_trace(go.Scatter(
+                x=forecast_labels,
+                y=y_forecast_continuous,
+                mode='lines',
+                name='Predicted Path',
+                line=dict(color='#00d4ff', width=2, dash='dash'),
+                hovertemplate="<b>%{x}</b>: %{y:.1f}% Risk"
+            ))
+            
+            st.caption("✨ **AI Predictive Horizon**: Linear projection based on last 30 samples.")
+
+        fig_hist.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", 
+            plot_bgcolor="rgba(0,0,0,0)", 
+            font_color="white", 
+            height=400, 
+            yaxis_range=[0, 100],
+            xaxis_title="Timeline",
+            yaxis_title="Risk (%)",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+    # Update previous values for next delta calculation
+    st.session_state.prev_cpu = cpu
+    st.session_state.prev_ram = ram
+
+
 # Branding
 st.markdown('<div class="brand-container"><h1 class="brand-axon">AXON</h1><p class="brand-subtitle">Predictive Health Engine</p></div>', unsafe_allow_html=True)
 
-tab_monitor, tab_doc = st.tabs(["01 / MONITOR", "02 / DOCUMENTATION"])
+tab_monitor, tab_doc, tab_mlops = st.tabs(["01 / MONITOR", "02 / DOCUMENTATION", "03 / MLOPS"])
 
 with tab_monitor:
     st.sidebar.header("TELEMETRY STREAM")
@@ -210,73 +303,34 @@ with tab_monitor:
         render_dashboard_content(cpu, ram, temp, 20.0, result)
         time.sleep(2)
         st.rerun()
-def render_dashboard_content(cpu, ram, temp, latency, result):
-    # 1. Logic for the Pulsing LED
-    if result:
-        prob = result.get("failure_probability", 0.0)
-        status = result.get("status", "STABLE")
-        led_class = "led-red" if prob > 0.8 else "led-green"
-        led_text = "CRITICAL RISK" if prob > 0.8 else "SYSTEM STABLE"
-        
-        st.markdown(f"""
-            <div class="led-container">
-                <div class="led-circle {led_class}"></div>
-                <span style="font-weight: 800; font-size: 0.9rem; color: rgba(255,255,255,0.8);">{led_text}</span>
-            </div>
-        """, unsafe_allow_html=True)
 
-        # Update History for the Risk Graph
-        st.session_state.history.append({"Reading": time.strftime("%H:%M:%S"), "Probability": prob * 100})
-        st.session_state.history = st.session_state.history[-50:] # Keep last 50
-
-    # 2. Layout: Columns for Gauge and Telemetry
-    col1, col2 = st.columns([1, 1], gap="large")
-    
-    with col1:
-        st.subheader("🛡️ AI System Health Gauge")
-        if result:
-            color = "#00ff00" if prob <= 0.4 else ("#ffa500" if prob <= 0.7 else "#ff4b4b")
-            st.markdown(f"""
-                <div class="glass-card">
-                    <div style="background-color: {color}; padding: 30px; border-radius: 12px; text-align: center; color: white;">
-                        <h2 style="margin:0;">{status.upper()}</h2>
-                        <h1 style="font-size: 5em; margin:15px 0;">{prob*100:.1f}%</h1>
-                        <p style="margin:0; opacity: 0.8;">PROBABILITY OF FAILURE</p>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # --- RESTORED: FEATURE IMPORTANCE (Factor Map) ---
-            if "feature_importance" in result:
-                st.subheader("🔍 Dynamic Risk Drivers")
-                fi_data = result["feature_importance"]
-                df_fi = pd.DataFrame({"Feature": list(fi_data.keys()), "Importance": list(fi_data.values())}).sort_values(by="Importance")
-                fig_fi = px.bar(df_fi, x="Importance", y="Feature", orientation='h', 
-                                color="Importance", color_continuous_scale="Viridis")
-                fig_fi.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", 
-                                    font_color="white", height=250, showlegend=False, coloraxis_showscale=False)
-                st.plotly_chart(fig_fi, use_container_width=True)
-        else:
-            st.warning("📡 AI Engine Synchronizing...")
-
-    with col2:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.subheader("⚡ Live System Telemetry")
-        m_col1, m_col2 = st.columns(2)
-        m_col1.metric("CPU", f"{cpu:.1f}%", delta=f"{cpu - st.session_state.prev_cpu:.1f}%")
-        m_col2.metric("RAM", f"{ram:.1f}%", delta=f"{ram - st.session_state.prev_ram:.1f}%")
-        st.metric("TEMP", f"{temp:.1f}°C")
-        st.metric("LATENCY", f"{latency:.1f}ms")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- RESTORED: GLOBAL RISK TRAJECTORY (Risk Graph) ---
-    st.markdown("---")
-    st.subheader("📈 Global Risk Trajectory (Last 50 Samples)")
-    if st.session_state.history:
-        df_hist = pd.DataFrame(st.session_state.history)
-        fig_hist = px.line(df_hist, x="Reading", y="Probability", markers=True)
-        fig_hist.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", 
-                               font_color="white", height=350, yaxis_range=[0, 100])
-        st.plotly_chart(fig_hist, use_container_width=True)
 with tab_doc:
     st.info("Documentation: AXON utilizes a Random Forest model hosted on Render via FastAPI.")
+
+with tab_mlops:
+    st.header("🛠️ MLOps Lifecycle Control")
+    
+    st.subheader("System Health")
+    m_col1, m_col2, m_col3 = st.columns(3)
+    
+    # Column 1: Inference Latency
+    m_col1.metric("Inference Latency", f"{st.session_state.inference_latency:.2f} ms")
+    
+    # Column 2: API Status
+    is_online = check_api_health()
+    status_text = "ONLINE" if is_online else "OFFLINE"
+    status_color = "green" if is_online else "red"
+    m_col2.metric("API Status", status_text, delta=None, delta_color="normal")
+    
+    # Column 3: Model Version
+    m_col3.metric("Model Version", "v1.0.2", help="Algorithm: Random Forest")
+
+    # JSON Debugger
+    st.markdown("---")
+    st.subheader("🔍 API Inspector (Last Raw Response)")
+    if st.session_state.last_result:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.json(st.session_state.last_result)
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.info("No API response captured yet. Interact with the Monitor tab to trigger a call.")
