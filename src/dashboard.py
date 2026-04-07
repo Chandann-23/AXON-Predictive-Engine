@@ -136,6 +136,22 @@ def get_prediction(cpu, ram, temp, latency):
         print(f"AXON API Error: {e}")
     return None
 
+def report_false_positive(cpu, ram, temp, latency):
+    API_URL = "https://axon-predictive-engine.onrender.com/feedback"
+    payload = {
+        "cpu": cpu,
+        "ram": ram,
+        "temp": temp,
+        "latency": latency,
+        "label": "false_positive"
+    }
+    try:
+        response = requests.post(API_URL, json=payload, timeout=5)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Feedback Error: {e}")
+        return False
+
 def check_api_health():
     HEALTH_URL = "https://axon-predictive-engine.onrender.com/" # Assuming base URL is health check
     try:
@@ -143,6 +159,16 @@ def check_api_health():
         return response.status_code == 200
     except:
         return False
+
+def get_history_data():
+    HISTORY_URL = "https://axon-predictive-engine.onrender.com/history"
+    try:
+        response = requests.get(HISTORY_URL, timeout=5)
+        if response.status_code == 200:
+            return response.json()
+    except Exception as e:
+        print(f"History Fetch Error: {e}")
+    return []
 
 def render_dashboard_content(cpu, ram, temp, latency, result):
     # Determine Probability using SAFE .get() method
@@ -187,6 +213,13 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
                 </div>
             """, unsafe_allow_html=True)
             
+            # Feedback Button
+            if st.button("🚫 Report False Positive", use_container_width=True):
+                if report_false_positive(cpu, ram, temp, latency):
+                    st.success("Feedback recorded. Thank you!")
+                else:
+                    st.error("Failed to send feedback.")
+
             if "feature_importance" in result:
                 st.subheader("🔍 Dynamic Risk Drivers")
                 fi_data = result["feature_importance"]
@@ -212,16 +245,25 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
     st.subheader("📈 Global Risk Trajectory & AI Predictive Horizon", 
                  help="This represents the expected system stress if current telemetry trends continue.")
     
-    if st.session_state.telemetry_history:
-        df_hist = pd.DataFrame(st.session_state.telemetry_history)
+    # Fetch data from Database instead of session state
+    db_history = get_history_data()
+    
+    if db_history:
+        # Convert to DataFrame and sort by timestamp ascending for plotting
+        df_hist = pd.DataFrame(db_history)
+        df_hist['timestamp'] = pd.to_datetime(df_hist['timestamp'])
+        df_hist = df_hist.sort_values('timestamp')
+        
+        # Format timestamp for display
+        df_hist['display_time'] = df_hist['timestamp'].dt.strftime('%H:%M:%S')
         
         # Base historical chart
         fig_hist = go.Figure()
         
         # Historical Trace
         fig_hist.add_trace(go.Scatter(
-            x=df_hist["timestamp"], 
-            y=df_hist["failure_probability"],
+            x=df_hist["display_time"], 
+            y=df_hist["failure_probability"] * (100 if df_hist["failure_probability"].max() <= 1 else 1),
             mode='lines+markers',
             name='Historical Risk',
             line=dict(color='#00d4ff', width=3),
@@ -229,24 +271,28 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
         ))
         
         # AI Predictive Horizon Forecasting
-        if len(st.session_state.telemetry_history) > 10:
-            y = df_hist["failure_probability"].values
-            x = np.arange(len(y))
+        if len(df_hist) > 10:
+            # Handle potential scaling differences (API returns decimal, dashboard uses percentage)
+            y_vals = df_hist["failure_probability"].values
+            if y_vals.max() <= 1.0:
+                y_vals = y_vals * 100
+                
+            x = np.arange(len(y_vals))
             
             # Simple linear trend (slope and intercept)
-            m, b = np.polyfit(x, y, 1)
+            m, b = np.polyfit(x, y_vals, 1)
             
             # Forecast next 5 points
-            x_forecast = np.arange(len(y), len(y) + 5)
+            x_forecast = np.arange(len(y_vals), len(y_vals) + 5)
             y_forecast = m * x_forecast + b
             y_forecast = np.clip(y_forecast, 0, 100) # Keep within 0-100%
             
             # Forecast labels (e.g., Last, T+1, T+2...)
-            last_timestamp = df_hist["timestamp"].iloc[-1]
+            last_timestamp = df_hist["display_time"].iloc[-1]
             forecast_labels = [last_timestamp] + [f"T+{i+1}" for i in range(5)]
             
             # Include last point for continuity
-            y_forecast_continuous = np.concatenate(([y[-1]], y_forecast))
+            y_forecast_continuous = np.concatenate(([y_vals[-1]], y_forecast))
             
             # Add Predicted Path Trace
             fig_hist.add_trace(go.Scatter(
@@ -258,7 +304,7 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
                 hovertemplate="<b>%{x}</b>: %{y:.1f}% Risk"
             ))
             
-            st.caption("✨ **AI Predictive Horizon**: Linear projection based on last 30 samples.")
+            st.caption(f"✨ **AI Predictive Horizon**: Linear projection based on last {len(df_hist)} samples from DB.")
 
         fig_hist.update_layout(
             paper_bgcolor="rgba(0,0,0,0)", 
@@ -272,6 +318,8 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
             margin=dict(l=20, r=20, t=40, b=20)
         )
         st.plotly_chart(fig_hist, use_container_width=True)
+    else:
+        st.info("Waiting for historical telemetry data from AXON Database...")
 
     # Update previous values for next delta calculation
     st.session_state.prev_cpu = cpu
@@ -285,6 +333,19 @@ tab_monitor, tab_doc, tab_mlops = st.tabs(["01 / MONITOR", "02 / DOCUMENTATION",
 
 with tab_monitor:
     st.sidebar.header("TELEMETRY STREAM")
+    
+    # Export History Button
+    db_history = get_history_data()
+    if db_history:
+        df_export = pd.DataFrame(db_history)
+        csv = df_export.to_csv(index=False).encode('utf-8')
+        st.sidebar.download_button(
+            label="📥 Export History",
+            data=csv,
+            file_name=f"axon_history_{time.strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+        )
+    
     live_mode = st.sidebar.toggle("ACTIVATE LIVE FEED", value=False)
 
     if not live_mode:
