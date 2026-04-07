@@ -207,7 +207,8 @@ def get_prediction(cpu, ram, temp, latency):
 def render_dashboard_content(cpu, ram, temp, latency, result):
     # Pulsing LED Status Component
     if result:
-        prob = result["failure_probability"]
+        prob = result.get("prediction", 0.5) 
+        status = result.get("status", "Unknown")
         led_class = "led-red" if prob > 0.8 else "led-green"
         led_text = "CRITICAL RISK" if prob > 0.8 else "SYSTEM STABLE"
         
