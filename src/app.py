@@ -78,7 +78,11 @@ model = load_model()
 
 @app.get("/")
 def read_root():
-    return {"message": "AXON Engine Online", "endpoints": ["/predict", "/history", "/health"]}
+    return {"message": "AXON Engine is Live! Use /predict?cpu=50&ram=50&temp=45&latency=20"}
+
+@app.head("/")
+def head_root():
+    return None
 
 @app.get("/health")
 def health():
