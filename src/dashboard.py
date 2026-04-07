@@ -312,7 +312,7 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
             font_color="white", 
             height=400, 
             yaxis_range=[0, 100],
-            xaxis_title="Timeline",
+            xaxis_title="Time of Telemetry (IST)",
             yaxis_title="Risk (%)",
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             margin=dict(l=20, r=20, t=40, b=20)
@@ -337,6 +337,15 @@ with tab_monitor:
     # Export History Button
     db_history = get_history_data()
     if db_history:
+        # Last Sync Display
+        latest_entry = db_history[0]
+        latest_ts = pd.to_datetime(latest_entry['timestamp']).strftime('%H:%M:%S')
+        st.sidebar.markdown(f"""
+            <div style="padding: 10px; border-radius: 5px; background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.2); margin-bottom: 20px;">
+                <p style="margin:0; font-size: 0.8rem; color: #00d4ff; font-weight: 600;">Last AI Pulse: {latest_ts}</p>
+            </div>
+        """, unsafe_allow_html=True)
+
         df_export = pd.DataFrame(db_history)
         csv = df_export.to_csv(index=False).encode('utf-8')
         st.sidebar.download_button(
