@@ -137,7 +137,7 @@ def render_dashboard_content(cpu, ram, temp, latency, result):
     
     if result:
         # We try both common keys to be safe
-        prob = result.get("prediction") or result.get("failure_probability") or 0.0
+        prob = result.get("failure_probability", 0.0) 
         status = result.get("status", "STABLE")
 
         led_class = "led-red" if prob > 0.8 else "led-green"
