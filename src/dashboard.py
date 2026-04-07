@@ -23,6 +23,7 @@ st.markdown("""
     html, body, [class*="css"] {
         font-family: 'Inter', sans-serif;
     }
+    
 
     /* Fixed Navbar Styling */
     .nav-container {
@@ -167,6 +168,7 @@ st.markdown("""
         from { box-shadow: 0 0 5px #ff0000; opacity: 0.8; }
         to { box-shadow: 0 0 25px #ff0000; opacity: 1; }
     }
+    
     </style>
 """, unsafe_allow_html=True)
 
@@ -183,15 +185,31 @@ st.markdown('<div class="nav-container"></div>', unsafe_allow_html=True)
 
 # Helper Functions
 def get_prediction(cpu, ram, temp, latency):
-    API_URL = "http://localhost:8000/predict"
-    payload = {"cpu": cpu, "ram": ram, "temp": temp, "latency": latency}
+    # Your actual Render URL
+    API_URL = "https://axon-predictive-engine.onrender.com/predict"
+    
+    # Define the payload locally so the function knows what to send
+    payload = {
+        "cpu": cpu, 
+        "ram": ram, 
+        "temp": temp, 
+        "latency": latency
+    }
+    
     try:
-        response = requests.post(API_URL, json=payload, timeout=2)
+        # We pass 'payload' into 'params' to match a standard FastAPI GET route
+        response = requests.get(API_URL, params=payload, timeout=10)
+        
         if response.status_code == 200:
             return response.json()
-    except:
+        else:
+            # This helps you see if Render is rejecting the request (e.g., 405 error)
+            st.sidebar.error(f"API Error: {response.status_code}")
+            return None
+    except Exception as e:
+        # Don't show the error on the main screen to keep the UI clean
+        print(f"Connection failed: {e}")
         return None
-    return None
 
 def render_dashboard_content(cpu, ram, temp, latency, result):
     # Pulsing LED Status Component
