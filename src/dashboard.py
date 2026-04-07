@@ -185,31 +185,24 @@ st.markdown('<div class="nav-container"></div>', unsafe_allow_html=True)
 
 # Helper Functions
 def get_prediction(cpu, ram, temp, latency):
-    # Your actual Render URL
     API_URL = "https://axon-predictive-engine.onrender.com/predict"
-    
-    # Define the payload locally so the function knows what to send
+    # We must define the payload here so the function knows what to send!
     payload = {
         "cpu": cpu, 
         "ram": ram, 
         "temp": temp, 
         "latency": latency
     }
-    
     try:
-        # We pass 'payload' into 'params' to match a standard FastAPI GET route
-        response = requests.get(API_URL, params=payload, timeout=10)
-        
+        # Changed 'input_data' to 'payload'
+        # Use GET and 'params'
+        response = requests.get(API_URL, params=payload, timeout=5)
         if response.status_code == 200:
             return response.json()
-        else:
-            # This helps you see if Render is rejecting the request (e.g., 405 error)
-            st.sidebar.error(f"API Error: {response.status_code}")
-            return None
     except Exception as e:
-        # Don't show the error on the main screen to keep the UI clean
-        print(f"Connection failed: {e}")
-        return None
+        # This will print to your Streamlit logs so you can see it
+        print(f"AXON Connection Error: {e}")
+    return None
 
 def render_dashboard_content(cpu, ram, temp, latency, result):
     # Pulsing LED Status Component

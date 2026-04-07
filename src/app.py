@@ -34,12 +34,10 @@ app = FastAPI(title="Server Health Predictive Maintenance API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=["*"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 model = load_model()
 
 
@@ -80,3 +78,8 @@ def predict(request: PredictionRequest) -> PredictionResponse:
 @app.get("/")
 def read_root():
     return {"message": "Server is running! Use /predict for AI analysis."}
+
+@app.get("/predict")
+def predict(cpu: float, ram: float, temp: float, latency: float):
+    # your model prediction logic here...
+    return {"prediction": 0.85, "factors": ["High CPU"]}
