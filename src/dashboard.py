@@ -68,7 +68,7 @@ st.markdown("""
         padding: 40px 0 20px 0;
     }
     .brand-axon {
-        font-weight: 800;
+        font-weight: 900;
         font-size: 5rem;
         letter-spacing: -3px;
         background: linear-gradient(180deg, #ffffff, #00d4ff);
@@ -76,11 +76,12 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         margin: 0;
         line-height: 1;
+        text-shadow: 0px 0px 20px rgba(0, 212, 255, 0.5);
     }
     .brand-subtitle {
         font-weight: 300;
-        font-size: 0.9rem;
-        letter-spacing: 6px;
+        font-size: 1.2rem;
+        letter-spacing: 12px;
         color: rgba(255, 255, 255, 0.4);
         margin-top: 10px;
         text-transform: uppercase;
