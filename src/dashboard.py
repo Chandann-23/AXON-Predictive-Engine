@@ -210,6 +210,73 @@ with tab_monitor:
         render_dashboard_content(cpu, ram, temp, 20.0, result)
         time.sleep(2)
         st.rerun()
+def render_dashboard_content(cpu, ram, temp, latency, result):
+    # 1. Logic for the Pulsing LED
+    if result:
+        prob = result.get("failure_probability", 0.0)
+        status = result.get("status", "STABLE")
+        led_class = "led-red" if prob > 0.8 else "led-green"
+        led_text = "CRITICAL RISK" if prob > 0.8 else "SYSTEM STABLE"
+        
+        st.markdown(f"""
+            <div class="led-container">
+                <div class="led-circle {led_class}"></div>
+                <span style="font-weight: 800; font-size: 0.9rem; color: rgba(255,255,255,0.8);">{led_text}</span>
+            </div>
+        """, unsafe_allow_html=True)
 
+        # Update History for the Risk Graph
+        st.session_state.history.append({"Reading": time.strftime("%H:%M:%S"), "Probability": prob * 100})
+        st.session_state.history = st.session_state.history[-50:] # Keep last 50
+
+    # 2. Layout: Columns for Gauge and Telemetry
+    col1, col2 = st.columns([1, 1], gap="large")
+    
+    with col1:
+        st.subheader("🛡️ AI System Health Gauge")
+        if result:
+            color = "#00ff00" if prob <= 0.4 else ("#ffa500" if prob <= 0.7 else "#ff4b4b")
+            st.markdown(f"""
+                <div class="glass-card">
+                    <div style="background-color: {color}; padding: 30px; border-radius: 12px; text-align: center; color: white;">
+                        <h2 style="margin:0;">{status.upper()}</h2>
+                        <h1 style="font-size: 5em; margin:15px 0;">{prob*100:.1f}%</h1>
+                        <p style="margin:0; opacity: 0.8;">PROBABILITY OF FAILURE</p>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # --- RESTORED: FEATURE IMPORTANCE (Factor Map) ---
+            if "feature_importance" in result:
+                st.subheader("🔍 Dynamic Risk Drivers")
+                fi_data = result["feature_importance"]
+                df_fi = pd.DataFrame({"Feature": list(fi_data.keys()), "Importance": list(fi_data.values())}).sort_values(by="Importance")
+                fig_fi = px.bar(df_fi, x="Importance", y="Feature", orientation='h', 
+                                color="Importance", color_continuous_scale="Viridis")
+                fig_fi.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", 
+                                    font_color="white", height=250, showlegend=False, coloraxis_showscale=False)
+                st.plotly_chart(fig_fi, use_container_width=True)
+        else:
+            st.warning("📡 AI Engine Synchronizing...")
+
+    with col2:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.subheader("⚡ Live System Telemetry")
+        m_col1, m_col2 = st.columns(2)
+        m_col1.metric("CPU", f"{cpu:.1f}%", delta=f"{cpu - st.session_state.prev_cpu:.1f}%")
+        m_col2.metric("RAM", f"{ram:.1f}%", delta=f"{ram - st.session_state.prev_ram:.1f}%")
+        st.metric("TEMP", f"{temp:.1f}°C")
+        st.metric("LATENCY", f"{latency:.1f}ms")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- RESTORED: GLOBAL RISK TRAJECTORY (Risk Graph) ---
+    st.markdown("---")
+    st.subheader("📈 Global Risk Trajectory (Last 50 Samples)")
+    if st.session_state.history:
+        df_hist = pd.DataFrame(st.session_state.history)
+        fig_hist = px.line(df_hist, x="Reading", y="Probability", markers=True)
+        fig_hist.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", 
+                               font_color="white", height=350, yaxis_range=[0, 100])
+        st.plotly_chart(fig_hist, use_container_width=True)
 with tab_doc:
     st.info("Documentation: AXON utilizes a Random Forest model hosted on Render via FastAPI.")
