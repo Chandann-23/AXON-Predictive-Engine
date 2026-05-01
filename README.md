@@ -1,135 +1,70 @@
-# Predictive Maintenance MLOps Project
+# AXON Predictive Engine 🚀 #
 
-This project implements an end-to-end MLOps workflow for predictive maintenance of server health. It generates synthetic telemetry logs, trains a classification model to predict failure risk, tracks experiments with MLflow, and serves predictions through a production-ready FastAPI API.
+Industrial IoT Telemetry & AI-Driven Predictive Analytics
 
-## Architecture Overview
+AXON is a distributed, full-stack AI application designed for real-time thermal monitoring and predictive maintenance. Unlike monolithic scripts, AXON is built as a decoupled system featuring a Dockerized backend, a serverless PostgreSQL database, and a cloud-native dashboard.
 
-The project follows a simple but professional MLOps architecture:
+## 🛠️ System Architecture
+The project demonstrates a professional-grade Multi-Cloud Distributed Architecture:
 
-- **Data Layer (`data/`)**
-  - `generate_logs.py` creates synthetic server telemetry.
-  - `system_logs.csv` stores the generated training dataset.
-- **Training Layer (`src/train.py`)**
-  - Loads data and trains a `RandomForestClassifier`.
-  - Logs hyperparameters and metrics to MLflow.
-  - Saves trained artifact to `models/server_model.pkl`.
-- **Serving Layer (`src/app.py`)**
-  - FastAPI service exposes:
-    - `GET /health` for service status.
-    - `POST /predict` for failure risk scoring.
-- **Model Layer (`models/`)**
-  - Stores the model artifact used by the API.
-- **CI Layer (`.github/workflows/main.yml`)**
-  - Runs on every push.
-  - Installs dependencies, regenerates data, retrains model, and validates model artifact existence.
-- **Container Layer (`Dockerfile`)**
-  - Packages the app with a lightweight Python runtime and starts the API with `uvicorn`.
+Frontend: Streamlit hosted on Streamlit Community Cloud for high-performance data visualization.
 
-## Project Structure
+Backend (The Brain): FastAPI/Uvicorn service containerized with Docker and deployed on Render.
 
-```text
-.
-├── .github/
-│   └── workflows/
-│       └── main.yml
-├── data/
-│   ├── generate_logs.py
-│   └── system_logs.csv
-├── models/
-│   └── server_model.pkl
-├── src/
-│   ├── app.py
-│   └── train.py
-├── Dockerfile
-├── README.md
-└── requirements.txt
-```
+Database (Memory): Serverless PostgreSQL hosted on Neon, utilizing SQLAlchemy for robust ORM and data persistence.
 
-## Local Setup
+Communication: RESTful API handshakes with Cross-Origin Resource Sharing (CORS) security protocols.
 
-Install dependencies:
+## ✨ Key Features
+AI-Driven Health Scoring: Implements Scikit-learn models (Decision Trees/Random Forests) to predict system health based on telemetry input.
 
-```bash
-python -m pip install -r requirements.txt
-```
+Persistent Telemetry: A custom-built pipeline that saves every "pulse" of data to a remote SQL database, ensuring no data loss during server restarts.
 
-Generate data:
+Real-time Visualization: Interactive Plotly charts for monitoring CPU, RAM, and Thermal fluctuations.
 
-```bash
-python data/generate_logs.py
-```
+Industrial IoT Simulation: Software-based telemetry generation designed for easy integration with physical hardware sensors.
 
-## Training With MLflow
+## 🏗️ Tech Stack
+Languages: Python 3.10+
 
-Run training:
+AI/ML: Scikit-learn, Pandas, NumPy
 
-```bash
-python src/train.py
-```
+Backend: FastAPI, Docker, Uvicorn
 
-What gets logged to MLflow:
+Frontend: Streamlit, Plotly
 
-- Parameter: `n_estimators`
-- Metrics: `accuracy`, `f1_score`
+Database: PostgreSQL, SQLAlchemy
 
-Artifacts:
+Cloud: Render, Neon, Streamlit Cloud
 
-- Model file: `models/server_model.pkl`
+## 🚀 Deployment Links
+Live Dashboard: [https://axon-predictive-engine.streamlit.app/](https://axon-predictive-engine.streamlit.app/)
 
-## Run the API Locally
+API Documentation (Swagger): [https://axon-predictive-engine-1.onrender.com/docs](https://axon-predictive-engine-1.onrender.com/docs)
 
-Start the FastAPI server:
+## 📂 Project Structure
+src/: Contains the core logic.
 
-```bash
-uvicorn src.app:app --host 127.0.0.1 --port 8000
-```
+app.py: FastAPI Backend & AI Logic
 
-Test endpoints:
+dashboard.py: Streamlit UI & Data Visualization
 
-- Health check: `GET http://127.0.0.1:8000/health`
-- Prediction: `POST http://127.0.0.1:8000/predict`
+models/: Trained Scikit-learn model files
 
-Example prediction payload:
+Dockerfile: Backend containerization settings.
 
-```json
-{
-  "cpu": 92,
-  "ram": 88,
-  "temp": 83,
-  "latency": 210
-}
-```
+requirements.txt: Python dependencies.
 
-## Docker Usage
+vercel.json: Configuration for frontend routing.
 
-Build image:
 
-```bash
-docker build -t server-health-mlops .
-```
+## 💻 How to Run Locally
+Clone the repo: git clone [https://github.com/Chandann-23/AXON-Predictive-Engine.git](https://github.com/Chandann-23/AXON-Predictive-Engine.git)
 
-Run container:
+Set up Environment Variables: Create a .env file with your DATABASE_URL.
 
-```bash
-docker run --rm -p 8000:8000 -p 8501:8501 server-health-mlops
-```
+## Run with Docker:
 
-Then visit:
+docker build -t axon-backend .
 
-- API: `http://127.0.0.1:8000/health`
-- API Documentation: `http://127.0.0.1:8000/docs`
-- **Frontend Dashboard**: `http://127.0.0.1:8501`
-
-## Frontend Dashboard
-
-The Streamlit dashboard allows real-time server health monitoring. Adjust sliders for CPU, RAM, Temperature, and Latency to see the model's prediction and the System Health Gauge.
-
-## CI Pipeline
-
-The GitHub Actions workflow in `.github/workflows/main.yml` automatically:
-
-1. Triggers on every push.
-2. Installs Python and project dependencies.
-3. Generates the dataset.
-4. Trains the model.
-5. Verifies `models/server_model.pkl` exists.
+docker run -p 10000:10000 axon-backend
