@@ -1,16 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "src/dashboard.py",
-      "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb", "runtime": "python3.10" }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "src/dashboard.py"
-    }
+  "public": true,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
