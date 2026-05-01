@@ -31,8 +31,11 @@ This guide walks you through deploying the AXON Predictive Engine as a distribut
    - **Build Command**: `docker build -t axon-api .`
    - **Start Command**: `docker run -p 8080:8080 axon-api`
 
-3. **Environment Variables (Optional)**
-   - No additional variables needed for basic deployment
+3. **Environment Variables**
+   - **DATABASE_URL**: PostgreSQL connection string (for production)
+     - Format: `postgresql://username:password@host:port/database`
+     - Example: `postgresql://user:pass@db.axon.com:5432/axon_db`
+   - **Note**: If DATABASE_URL is not set, app will fallback to SQLite
 
 4. **Get Your API URL**
    - Once deployed, copy the "Service URL" from Render dashboard
@@ -41,8 +44,38 @@ This guide walks you through deploying the AXON Predictive Engine as a distribut
 5. **Verify Backend**
    ```bash
    curl https://axon-api.onrender.com/health
-   # Expected: {"status":"ok","db_connected":true}
+   # SQLite: {"status":"ok","db_type":"sqlite","db_connected":true}
+   # PostgreSQL: {"status":"ok","db_type":"postgresql","db_connected":true}
    ```
+
+---
+
+## PostgreSQL Setup (Optional but Recommended)
+
+### Option 1: Render PostgreSQL (Easy)
+1. **Create Database**
+   - Go to Render Dashboard → "New" → "PostgreSQL"
+   - Choose a name (e.g., `axon-db`)
+   - Select free tier or paid plan
+
+2. **Get Connection String**
+   - Once deployed, go to database settings
+   - Copy the "Connection" string
+   - Format: `postgresql://username:password@host:port/database`
+
+3. **Add to Web Service**
+   - In your Render web service settings
+   - Add Environment Variable: `DATABASE_URL` = (paste connection string)
+
+### Option 2: External PostgreSQL
+- **AWS RDS**, **Google Cloud SQL**, or **DigitalOcean**
+- Create database and get connection string
+- Add `DATABASE_URL` to Render environment variables
+
+### Option 3: SQLite (Development)
+- No setup required
+- Automatically used if `DATABASE_URL` is not set
+- Perfect for testing and development
 
 ---
 
@@ -129,16 +162,16 @@ This guide walks you through deploying the AXON Predictive Engine as a distribut
 ## Architecture Diagram
 
 ```
-Vercel (Frontend)     →    Render (Backend)
-┌─────────────────┐         ┌─────────────────┐
-│  Streamlit App   │  HTTPS  │   FastAPI       │
-│  - UI/Gauges     │ ──────→ │  - /predict     │
-│  - Sliders       │         │  - /history     │
-│  - Charts        │         │  - /health      │
-│  - Environment   │         │  - SQLite DB    │
-│    Variables     │         │  - ML Model     │
-└─────────────────┘         └─────────────────┘
-     VERCEL_URL                   RENDER_URL
+Vercel (Frontend)     →    Render (Backend)     →    Database
+┌─────────────────┐         ┌─────────────────┐    ┌─────────────┐
+│  Streamlit App   │  HTTPS  │   FastAPI       │    │ PostgreSQL  │
+│  - UI/Gauges     │ ──────→ │  - /predict     │    │ (Optional)  │
+│  - Sliders       │         │  - /history     │    │             │
+│  - Charts        │         │  - /health      │    │ SQLite DB   │
+│  - Environment   │         │  - ML Model     │    │ (Fallback)  │
+│    Variables     │         │  - Auto Table   │    │             │
+└─────────────────┘         │    Creation     │    └─────────────┘
+     VERCEL_URL                 RENDER_URL
 ```
 
 ---
@@ -147,7 +180,9 @@ Vercel (Frontend)     →    Render (Backend)
 
 - **Render**: Free tier sleeps after 15min inactivity (60s wake-up)
 - **Vercel**: Instant cold starts, no sleep issues
-- **Database**: SQLite persists in Docker container
+- **Database**: 
+  - SQLite: Persists in Docker container
+  - PostgreSQL: Production-grade, persistent, scalable
 - **Latency**: Expect 200-800ms for API calls
 
 ---

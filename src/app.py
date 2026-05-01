@@ -4,10 +4,13 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime
 from typing import Any, List
+import os
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 # --- 1. PATH CONFIGURATION (The "Render-Safe" Way) ---
 # This ensures SQLite creates the DB in the same folder as this script
@@ -15,6 +18,22 @@ BASE_DIR = Path(__file__).resolve().parent
 MODELS_DIR = BASE_DIR.parent / "models"
 TELEMETRY_DB = BASE_DIR / "axon_telemetry.db"
 FEEDBACK_DB = BASE_DIR / "feedback.db"
+
+# --- 2. DATABASE CONFIGURATION ---
+# Support both PostgreSQL (production) and SQLite (development)
+DATABASE_URL = os.environ.get("DATABASE_URL")
+USE_POSTGRES = DATABASE_URL is not None
+
+if USE_POSTGRES:
+    # PostgreSQL configuration
+    engine = create_engine(DATABASE_URL)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    print(f"Using PostgreSQL: {DATABASE_URL}")
+else:
+    # SQLite configuration (fallback)
+    print("Using SQLite fallback")
+    engine = None
+    SessionLocal = None
 
 # --- 2. DATA MODELS ---
 class PredictionResponse(BaseModel):
@@ -31,26 +50,50 @@ class FeedbackRequest(BaseModel):
 
 # --- 3. DATABASE INITIALIZATION ---
 def init_dbs():
-    # Initialize Telemetry DB
-    with sqlite3.connect(TELEMETRY_DB) as conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                cpu REAL, ram REAL, temp REAL, latency REAL,
-                failure_probability REAL, status TEXT
-            )
-        ''')
-    
-    # Initialize Feedback DB
-    with sqlite3.connect(FEEDBACK_DB) as conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS feedback (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cpu REAL, ram REAL, temp REAL, latency REAL,
-                label TEXT, timestamp DATETIME
-            )
-        ''')
+    if USE_POSTGRES:
+        # Initialize PostgreSQL tables
+        with engine.connect() as conn:
+            # Create telemetry table
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS history (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    cpu REAL, ram REAL, temp REAL, latency REAL,
+                    failure_probability REAL, status TEXT
+                )
+            """))
+            
+            # Create feedback table
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS feedback (
+                    id SERIAL PRIMARY KEY,
+                    cpu REAL, ram REAL, temp REAL, latency REAL,
+                    label TEXT, timestamp TIMESTAMP
+                )
+            """))
+            conn.commit()
+            print("PostgreSQL tables initialized")
+    else:
+        # Initialize SQLite databases
+        with sqlite3.connect(TELEMETRY_DB) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    cpu REAL, ram REAL, temp REAL, latency REAL,
+                    failure_probability REAL, status TEXT
+                )
+            ''')
+        
+        with sqlite3.connect(FEEDBACK_DB) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cpu REAL, ram REAL, temp REAL, latency REAL,
+                    label TEXT, timestamp DATETIME
+                )
+            ''')
+        print("SQLite databases initialized")
 
 init_dbs()
 
@@ -86,7 +129,15 @@ def head_root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "db_connected": TELEMETRY_DB.exists()}
+    if USE_POSTGRES:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return {"status": "ok", "db_type": "postgresql", "db_connected": True}
+        except Exception as e:
+            return {"status": "error", "db_type": "postgresql", "db_connected": False, "error": str(e)}
+    else:
+        return {"status": "ok", "db_type": "sqlite", "db_connected": TELEMETRY_DB.exists()}
 
 @app.get("/predict", response_model=PredictionResponse)
 def predict(
@@ -109,12 +160,23 @@ def predict(
         
         status = "CRITICAL" if prob >= 0.8 else ("WARNING" if prob >= 0.5 else "STABLE")
 
-        # PERSISTENCE: Log to SQLite
-        with sqlite3.connect(TELEMETRY_DB) as conn:
-            conn.execute('''
-                INSERT INTO history (cpu, ram, temp, latency, failure_probability, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (cpu, ram, temp, latency, round(prob, 4), status))
+        # PERSISTENCE: Log to Database
+        if USE_POSTGRES:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    INSERT INTO history (cpu, ram, temp, latency, failure_probability, status)
+                    VALUES (:cpu, :ram, :temp, :latency, :prob, :status)
+                """), {
+                    "cpu": cpu, "ram": ram, "temp": temp, "latency": latency,
+                    "prob": round(prob, 4), "status": status
+                })
+                conn.commit()
+        else:
+            with sqlite3.connect(TELEMETRY_DB) as conn:
+                conn.execute('''
+                    INSERT INTO history (cpu, ram, temp, latency, failure_probability, status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (cpu, ram, temp, latency, round(prob, 4), status))
 
         return PredictionResponse(
             failure_probability=round(prob, 4),
@@ -127,23 +189,46 @@ def predict(
 @app.get("/history")
 def get_history():
     try:
-        with sqlite3.connect(TELEMETRY_DB) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM history ORDER BY timestamp DESC LIMIT 50")
-            rows = cursor.fetchall()
-            return [dict(row) for row in rows]
+        if USE_POSTGRES:
+            with engine.connect() as conn:
+                result = conn.execute(text("""
+                    SELECT * FROM history 
+                    ORDER BY timestamp DESC 
+                    LIMIT 50
+                """))
+                rows = result.fetchall()
+                # Convert to dict format
+                return [dict(row._mapping) for row in rows]
+        else:
+            with sqlite3.connect(TELEMETRY_DB) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM history ORDER BY timestamp DESC LIMIT 50")
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows]
     except Exception as e:
         return {"error": "History unavailable", "details": str(e)}
 
 @app.post("/feedback")
 def receive_feedback(feedback: FeedbackRequest):
     try:
-        with sqlite3.connect(FEEDBACK_DB) as conn:
-            conn.execute('''
-                INSERT INTO feedback (cpu, ram, temp, latency, label, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (feedback.cpu, feedback.ram, feedback.temp, feedback.latency, feedback.label, datetime.now()))
+        if USE_POSTGRES:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    INSERT INTO feedback (cpu, ram, temp, latency, label, timestamp)
+                    VALUES (:cpu, :ram, :temp, :latency, :label, :timestamp)
+                """), {
+                    "cpu": feedback.cpu, "ram": feedback.ram, "temp": feedback.temp,
+                    "latency": feedback.latency, "label": feedback.label,
+                    "timestamp": datetime.now()
+                })
+                conn.commit()
+        else:
+            with sqlite3.connect(FEEDBACK_DB) as conn:
+                conn.execute('''
+                    INSERT INTO feedback (cpu, ram, temp, latency, label, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (feedback.cpu, feedback.ram, feedback.temp, feedback.latency, feedback.label, datetime.now()))
         return {"message": "Feedback recorded"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
