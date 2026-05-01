@@ -1,0 +1,21 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+
+# Python Caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Streamlit/OS junk
+.streamlit/config.toml
+.DS_Store
+Thumbs.db
+
+
+# Large Model Files (Optional)
+# If your model is >100MB, you should ignore it and use Git LFS
+# model.joblib

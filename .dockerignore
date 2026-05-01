@@ -1,0 +1,26 @@
+# Exclude Python bytecode and cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Exclude Git history
+.git/
+
+# Exclude environment variables and virtual environments
+.env
+venv/
+env/
+.venv/
+
+# Exclude OS-specific junk files
+.DS_Store
+Thumbs.db
+
+# Exclude local SQLite database files to ensure fresh DBs on deployment
+*.db
+feedback.db
+axon_telemetry.db
+
+# Exclude Streamlit specific config
+.streamlit/
