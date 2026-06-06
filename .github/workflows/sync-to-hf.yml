@@ -23,16 +23,16 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-          # Clone using explicit secret values with fallbacks
-          git clone https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine hf_space
+          # Clone using explicit .git endpoint with hardcoded public paths
+          git clone https://Chandann-23:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine.git hf_space
 
-          # Clear old content inside the clone directory (keep .git tracking configuration)
+          # Clear old content inside the space clone (keep .git tracking configuration)
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
-          # Copy backend contents into the space root directory
+          # Copy backend folder contents into the space root directory
           cp -r backend/. hf_space/
 
-          # Move into workspace, stage changes, commit, and push
+          # Move into workspace, stage changes, and commit
           cd hf_space
           git add -A
           
@@ -44,5 +44,5 @@ jobs:
           
           git commit -m "sync: auto-deploy from GitHub Actions ($(date -u '+%Y-%m-%d %H:%M UTC'))"
           
-          # FORCE push to overwrite the remote history and bypass fast-forward rejections
-          git push --force https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine main
+          # Force push to overwrite remote history and clear fast-forward rejections
+          git push --force https://Chandann-23:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine.git main
