@@ -42,7 +42,7 @@ The engine consumes a realistic, 8-dimensional operational telemetry map:
 
 ### 2. Explainable AI (XAI) via SHAP Local Contributions
 Every prediction pulse returns an additive contribution map. The engine calculates how much each of the 8 parameters pushed the risk score UP or DOWN relative to the training baseline:
-$$\sum \text{local\_contributions} = P_{\text{predicted}} - 0.10$$
+$$\sum \text{local-contributions} = P_{\text{predicted}} - 0.10$$
 Teal bars indicate stabilizing parameters keeping risk low, while red/orange bars reveal risk drivers pushing the system toward failure.
 
 ### 3. Kolmogorov-Smirnov (K-S) Data Drift Engine
