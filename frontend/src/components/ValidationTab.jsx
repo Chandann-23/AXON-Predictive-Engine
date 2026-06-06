@@ -50,9 +50,7 @@ export default function ValidationTab({ applyPreset, setActiveTab, mlopsStats, o
 
   const handleRunTest = (tc) => {
     if (tc.preset === 'memory') {
-      if (onForceRetrain) {
-        onForceRetrain();
-      }
+      if (onForceRetrain) onForceRetrain();
       setActiveTab(tc.targetTab);
     } else {
       applyPreset(tc.preset);
@@ -62,88 +60,106 @@ export default function ValidationTab({ applyPreset, setActiveTab, mlopsStats, o
 
   return (
     <div className="fade-in">
-      <div className="sync-banner" style={{ background: 'linear-gradient(90deg, rgba(0, 212, 255, 0.1), transparent)' }}>
+      <div className="sync-banner" style={{ background: 'linear-gradient(90deg, rgba(0,212,255,0.1), transparent)' }}>
         <span>
           <div className="sync-dot" style={{ backgroundColor: '#10b981', boxShadow: '0 0 8px #10b981' }}></div>
           AXON Engine Verification Suite: Active (ProductionQA Mode)
         </span>
       </div>
 
-      <div className="glass-card" style={{ width: '100%', padding: '24px' }}>
-        <h3 className="chart-title" style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
-          🛡️ AXON ML Engine - System Verification & Validation Playbook
+      <div className="glass-card" style={{ width: '100%', padding: '22px' }}>
+        <h3 className="chart-title" style={{ fontSize: '1.1rem', marginBottom: '8px' }}>
+          🛡️ AXON ML Engine — System Verification & Validation Playbook
         </h3>
-        <p style={{ fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.5)', lineHeight: '1.5', marginBottom: '24px' }}>
+        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', lineHeight: '1.5', marginBottom: '22px' }}>
           This playbook serves as an interactive QA runbook to assert the reliability, transparency, and data quality pipelines of the AXON Predictive Engine. Recruiters and auditors can execute scenarios below to inspect model behaviors and MLOps compliance.
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {testCases.map((tc) => (
-            <div key={tc.id} className="glass-card" style={{ 
-              margin: 0, 
-              padding: '20px', 
-              background: 'rgba(255, 255, 255, 0.01)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-              borderRadius: '10px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '15px'
-            }}>
+            <div
+              key={tc.id}
+              className="glass-card"
+              style={{
+                margin: 0,
+                padding: '18px',
+                background: 'rgba(255,255,255,0.01)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}
+            >
               {/* Card Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ 
-                    fontSize: '0.65rem', 
-                    fontWeight: '800', 
-                    background: 'rgba(0, 212, 255, 0.15)', 
-                    color: '#00d4ff', 
-                    padding: '4px 8px', 
-                    borderRadius: '4px',
-                    letterSpacing: '1px'
-                  }}>{tc.id}</span>
-                  <h4 style={{ fontSize: '0.92rem', fontWeight: '700', color: '#fff', margin: 0 }}>
+              <div
+                className="validation-card-header"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontSize: '0.62rem', fontWeight: '800',
+                    background: 'rgba(0,212,255,0.15)', color: '#00d4ff',
+                    padding: '3px 8px', borderRadius: '4px', letterSpacing: '1px',
+                    flexShrink: 0
+                  }}>
+                    {tc.id}
+                  </span>
+                  <h4 style={{ fontSize: '0.88rem', fontWeight: '700', color: '#fff', margin: 0 }}>
                     {tc.name}
                   </h4>
                 </div>
-                <span className="status-badge badge-stable" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                  ACTIVE / READY
+                <span className="status-badge badge-stable" style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', flexShrink: 0 }}>
+                  READY
                 </span>
               </div>
 
-              {/* Technical Specifications */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.15)', padding: '12px', borderRadius: '6px' }}>
+              {/* Technical Specs */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                gap: '10px',
+                fontSize: '0.72rem',
+                background: 'rgba(0,0,0,0.15)',
+                padding: '11px',
+                borderRadius: '6px'
+              }}>
                 <div>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '2px' }}>QA Subsystem</span>
+                  <span style={{ color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: '2px' }}>QA Subsystem</span>
                   <strong style={{ color: '#fff' }}>{tc.subsystem}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '2px' }}>Focus Metric</span>
+                  <span style={{ color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: '2px' }}>Focus Metric</span>
                   <strong style={{ color: '#00d4ff' }}>{tc.focus}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '2px' }}>Test Type</span>
+                  <span style={{ color: 'rgba(255,255,255,0.38)', display: 'block', marginBottom: '2px' }}>Test Type</span>
                   <strong style={{ color: '#fff' }}>{tc.preset === 'memory' ? 'Automated Job' : 'Interactive Preset'}</strong>
                 </div>
               </div>
 
-              {/* Description Block */}
-              <div style={{ fontSize: '0.78rem', lineHeight: '1.45', color: 'rgba(255,255,255,0.65)' }}>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: '600', display: 'block', marginBottom: '4px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Test Description</span>
+              {/* Description */}
+              <div style={{ fontSize: '0.76rem', lineHeight: '1.45', color: 'rgba(255,255,255,0.62)' }}>
+                <span style={{ color: 'rgba(255,255,255,0.38)', fontWeight: '600', display: 'block', marginBottom: '3px', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Test Description
+                </span>
                 {tc.description}
               </div>
 
-              {/* Expected Outcomes Block */}
-              <div style={{ fontSize: '0.78rem', lineHeight: '1.45', color: 'rgba(255,255,255,0.65)', borderLeft: '3px solid #00d4ff', paddingLeft: '12px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: '600', display: 'block', marginBottom: '2px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expected QA Verification</span>
+              {/* Expected Outcomes */}
+              <div style={{ fontSize: '0.76rem', lineHeight: '1.45', color: 'rgba(255,255,255,0.62)', borderLeft: '3px solid #00d4ff', paddingLeft: '12px' }}>
+                <span style={{ color: 'rgba(255,255,255,0.38)', fontWeight: '600', display: 'block', marginBottom: '2px', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Expected QA Verification
+                </span>
                 {tc.expected}
               </div>
 
-              {/* Run Trigger */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px' }}>
-                <button 
+              {/* Run Button */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                <button
                   onClick={() => handleRunTest(tc)}
-                  className="btn-primary"
-                  style={{ width: 'auto', padding: '10px 18px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  className="btn-primary validation-run-btn"
+                  style={{ width: 'auto', padding: '10px 18px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '7px' }}
                 >
                   🚀 {tc.actionLabel}
                 </button>
