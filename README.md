@@ -1,3 +1,13 @@
+---
+title: AXON Predictive Engine API
+emoji: 📡
+colorFrom: blue
+colorTo: cyan
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # AXON Predictive Engine 🚀
 ### Industrial IoT Telemetry, AI-Driven Anomaly Detection & Closed-Loop MLOps
 
