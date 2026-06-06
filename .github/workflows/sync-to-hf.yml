@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/sync-to-hf.yml"
+  workflow_dispatch:
 
 jobs:
   sync-to-hf:
@@ -18,31 +22,64 @@ jobs:
           lfs: true
 
       - name: Push backend folder to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ secrets.HF_USERNAME || vars.HF_USERNAME }}
+          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME || vars.HF_SPACE_NAME }}
         run: |
           # Configure git identity
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-          # Clone using explicit .git endpoint with hardcoded public paths
-          git clone https://Chandann-23:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine.git hf_space
+          # Fallback to defaults if variables are empty
+          USERNAME="${HF_USERNAME:-Chandann-23}"
+          SPACE_NAME="${HF_SPACE_NAME:-Axon-predictive-engine}"
+
+          # Validate token
+          if [ -z "$HF_TOKEN" ]; then
+            echo "ERROR: HF_TOKEN is empty or not set in GitHub Secrets!"
+            echo "Please go to your GitHub Repo -> Settings -> Secrets and variables -> Actions and add HF_TOKEN."
+            exit 1
+          fi
+
+          # Use git credential store to handle authentication securely (handles special characters in token)
+          git config --global credential.helper store
+          echo "https://$USERNAME:$HF_TOKEN@huggingface.co" > ~/.git-credentials
+
+          echo "Cloning Hugging Face Space: $USERNAME/$SPACE_NAME..."
+          git clone "https://huggingface.co/spaces/$USERNAME/$SPACE_NAME" hf_space 2>clone_err.log || {
+            echo "ERROR: Failed to clone Hugging Face Space."
+            # Mask the token if it somehow got into the error log
+            cat clone_err.log | sed "s/$HF_TOKEN/***TOKEN***/g"
+            exit 1
+          }
 
           # Clear old content inside the space clone (keep .git tracking configuration)
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
-          # Copy backend folder contents into the space root directory
+          # Copy backend folder contents and root .gitignore to the space
           cp -r backend/. hf_space/
+          cp .gitignore hf_space/
 
           # Move into workspace, stage changes, and commit
           cd hf_space
           git add -A
           
           # Check if there are actual code changes to prevent empty commit errors
-          if git diff --cached --quiet; then
+          if git diff --quiet && git diff --cached --quiet; then
             echo "No changes to sync."
             exit 0
           fi
           
           git commit -m "sync: auto-deploy from GitHub Actions ($(date -u '+%Y-%m-%d %H:%M UTC'))"
           
-          # Force push to overwrite remote history and clear fast-forward rejections
-          git push --force https://Chandann-23:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine.git main
+          echo "Pushing changes to Hugging Face Space..."
+          git push --force "https://huggingface.co/spaces/$USERNAME/$SPACE_NAME" main 2>push_err.log || {
+            echo "ERROR: Failed to push to Hugging Face Space."
+            cat push_err.log | sed "s/$HF_TOKEN/***TOKEN***/g"
+            exit 1
+          }
+          
+          # Clean up credentials
+          rm -f ~/.git-credentials
+          echo "Successfully synced to Hugging Face Space!"
