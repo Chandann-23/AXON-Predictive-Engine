@@ -22,3 +22,6 @@ mlruns/
 Thumbs.db
 .vscode/
 .idea/
+
+# Large media files / Screen recordings
+Docs/
