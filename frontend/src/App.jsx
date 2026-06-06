@@ -58,7 +58,7 @@ export default function App() {
   // 2. Fetch History
   const fetchHistory = async () => {
     try {
-      const res = await fetch(`${API_URL}/history`);
+      const res = await fetch(`${API_URL}/history?_t=${Date.now()}`);
       if (res.ok) setHistory(await res.json());
     } catch (err) {
       console.error('Failed to retrieve history:', err);
@@ -74,7 +74,8 @@ export default function App() {
       const queryParams = new URLSearchParams({
         cpu: c.toString(), ram: r.toString(), temp: t.toString(),
         latency: l.toString(), disk_io: d.toString(), swap_usage: s.toString(),
-        net_throughput: n.toString(), thread_count: th.toString()
+        net_throughput: n.toString(), thread_count: th.toString(),
+        _t: Date.now().toString()
       });
       const res = await fetch(`${API_URL}/predict?${queryParams}`);
       const duration = performance.now() - startTime;
@@ -123,7 +124,7 @@ export default function App() {
   // 4b. Fetch MLOps Stats
   const fetchMlopsStats = async () => {
     try {
-      const res = await fetch(`${API_URL}/mlops/stats`);
+      const res = await fetch(`${API_URL}/mlops/stats?_t=${Date.now()}`);
       if (res.ok) setMlopsStats(await res.json());
     } catch (err) {
       console.error('Failed to retrieve MLOps stats:', err);
