@@ -1,0 +1,46 @@
+name: Sync Backend → Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"   # Only trigger when backend files change
+
+jobs:
+  sync-to-hf:
+    name: Push backend to HF Space
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push backend folder to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
+        run: |
+          # Configure git identity
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # Clone the HF Space repo
+          git clone https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME hf_space
+
+          # Clear old content (keep .git)
+          find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
+
+          # Copy backend contents into the space root
+          cp -r backend/. hf_space/
+
+          # Stage, commit, and push
+          cd hf_space
+          git add -A
+          git diff --cached --quiet && echo "No changes to sync." && exit 0
+          git commit -m "sync: auto-deploy from GitHub Actions ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+          git push https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main
