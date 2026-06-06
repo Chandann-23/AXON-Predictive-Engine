@@ -83,10 +83,7 @@ export default function MLOpsTab({
         {/* Left Column: Drift Detection Monitor */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="glass-card" style={{ margin: 0 }}>
-            <h3 className="chart-title">📊 Statistical Data Drift Monitor</h3>
-            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', lineHeight: '1.4', marginBottom: '15px' }}>
-              Comparing live telemetry (last 30 pulses) against baseline training data (5,000 normal samples) using the <strong>Kolmogorov-Smirnov (K-S) two-sample test</strong>.
-            </p>
+            <h3 className="chart-title" style={{ marginBottom: '15px' }}>📊 Statistical Data Drift Monitor</h3>
             
             {mlopsStats?.drift_metrics && Object.keys(mlopsStats.drift_metrics).length > 0 ? (
               <div className="table-container" style={{ marginTop: 0 }}>
@@ -122,20 +119,14 @@ export default function MLOpsTab({
                 {mlopsStats?.drift_message || 'Gathering telemetry database records...'}
               </div>
             )}
-            
-            <div style={{ marginTop: '15px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', lineHeight: '1.4' }}>
-              💡 <strong>Why p-value &lt; 0.05?</strong> In statistics, a p-value below 5% means we reject the hypothesis that the live telemetry follows the same distribution as the training data, indicating that the telemetry metrics have drifted.
-            </div>
+
           </div>
         </div>
 
         {/* Right Column: Retraining Console & JSON Debugger */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="glass-card" style={{ margin: 0 }}>
-            <h3 className="chart-title">🔄 Active Learning & Retraining Console</h3>
-            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', lineHeight: '1.4', marginBottom: '20px' }}>
-              Whenever operators report false positives, corrections are logged. Retraining automatically triggers every 5 feedback records, updating models seamlessly.
-            </p>
+            <h3 className="chart-title" style={{ marginBottom: '20px' }}>🔄 Active Learning & Retraining Console</h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
               <div style={{ padding: '15px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', textAlign: 'center' }}>

@@ -68,12 +68,9 @@ export default function ValidationTab({ applyPreset, setActiveTab, mlopsStats, o
       </div>
 
       <div className="glass-card" style={{ width: '100%', padding: '22px' }}>
-        <h3 className="chart-title" style={{ fontSize: '1.1rem', marginBottom: '8px' }}>
+        <h3 className="chart-title" style={{ fontSize: '1.1rem', marginBottom: '20px' }}>
           🛡️ AXON ML Engine — System Verification & Validation Playbook
         </h3>
-        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', lineHeight: '1.5', marginBottom: '22px' }}>
-          This playbook serves as an interactive QA runbook to assert the reliability, transparency, and data quality pipelines of the AXON Predictive Engine. Recruiters and auditors can execute scenarios below to inspect model behaviors and MLOps compliance.
-        </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {testCases.map((tc) => (

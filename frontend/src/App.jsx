@@ -236,10 +236,10 @@ export default function App() {
 
   // Navigation config
   const tabs = [
-    { id: 'monitor',    icon: '📊', label: 'Monitor',    shortTitle: '📡 Monitor',          fullTitle: '📡 Real-Time Telemetry Monitor',         subtitle: 'Monitor live resource load metrics and explain predictions using SHAP contributions.' },
-    { id: 'history',   icon: '🗄️', label: 'History',    shortTitle: '🗄️ History Logs',     fullTitle: '🗄️ Core Database History Logs',           subtitle: 'Review system telemetry database rows (limited to the last 15 entries).' },
-    { id: 'mlops',     icon: '⚙️', label: 'MLOps',      shortTitle: '⚙️ MLOps',            fullTitle: '⚙️ MLOps Lifecycle & Drift Monitor',       subtitle: 'Analyze statistical Kolmogorov-Smirnov drift metrics and trigger active learning retrains.' },
-    { id: 'validation',icon: '🛡️', label: 'Validate',   shortTitle: '🛡️ Validation',       fullTitle: '🛡️ Automated System Validation Playbook', subtitle: 'Execute automated test runs to audit the integrity, explainability, and quality pipelines.' },
+    { id: 'monitor',    icon: '📊', label: 'Monitor',    shortTitle: '📡 Monitor',          fullTitle: '📡 Real-Time Telemetry Monitor',         subtitle: '' },
+    { id: 'history',   icon: '🗄️', label: 'History',    shortTitle: '🗄️ History Logs',     fullTitle: '🗄️ Core Database History Logs',           subtitle: '' },
+    { id: 'mlops',     icon: '⚙️', label: 'MLOps',      shortTitle: '⚙️ MLOps',            fullTitle: '⚙️ MLOps Lifecycle & Drift Monitor',       subtitle: '' },
+    { id: 'validation',icon: '🛡️', label: 'Validate',   shortTitle: '🛡️ Validation',       fullTitle: '🛡️ Automated System Validation Playbook', subtitle: '' },
   ];
 
   const activeTabConfig = tabs.find(t => t.id === activeTab) || tabs[0];
@@ -304,7 +304,7 @@ export default function App() {
               </button>
               <div>
                 <h2 className="page-title-text">{activeTabConfig.fullTitle}</h2>
-                <div className="page-subtitle-text">{activeTabConfig.subtitle}</div>
+                {activeTabConfig.subtitle && <div className="page-subtitle-text">{activeTabConfig.subtitle}</div>}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>

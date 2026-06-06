@@ -356,7 +356,7 @@ export default function MonitorTab({
               </p>
             </div>
           ) : prediction ? (
-            <div className="health-gauge-inner">
+            <div className="health-gauge-inner" style={{ justifyContent: 'center' }}>
               <div className="gauge-display-wrapper">
                 <div className={`gauge-card ${getGaugeClass(prediction.failure_probability)}`} style={{ padding: '24px' }}>
                   <div className="gauge-status" style={{ fontSize: '1.2rem' }}>{getStatusText(prediction.failure_probability, prediction.status)}</div>
@@ -374,29 +374,6 @@ export default function MonitorTab({
                   </button>
                 )}
               </div>
-
-              {/* Dynamic Advisory & Diagnostics Checklist */}
-              <div className="advisory-wrapper">
-                <h4 className="advisory-title">🩺 AI Diagnostic Advisory</h4>
-                <p style={{ fontSize: '0.72rem', color: getAdvisoryColor(prediction.failure_probability, prediction.anomaly_detected), lineHeight: '1.45', marginBottom: '12px', margin: 0 }}>
-                  {getAdvisoryText(prediction.failure_probability, prediction.anomaly_detected, prediction.status)}
-                </p>
-                
-                <div className="diagnostics-checklist">
-                  <div className="checklist-item">
-                    <span className="check-icon">✓</span>
-                    <span>Operational Margin: <strong>{((1 - prediction.failure_probability) * 100).toFixed(0)}% Safe</strong></span>
-                  </div>
-                  <div className="checklist-item">
-                    <span className="check-icon">✓</span>
-                    <span>Model Sync: <strong>Active Pulse</strong></span>
-                  </div>
-                  <div className="checklist-item">
-                    <span className="check-icon">✓</span>
-                    <span>Retrainer State: <strong>Operational</strong></span>
-                  </div>
-                </div>
-              </div>
             </div>
           ) : (
             <div className="loading-container">Waiting for API signal...</div>
@@ -406,38 +383,31 @@ export default function MonitorTab({
         {/* Scenario Profiles and Engine Metadata Card */}
         <div className="glass-card scenario-metadata-card">
           <div className="scenario-section">
-            <h3 className="chart-title" style={{ marginBottom: '4px' }}>🎛️ Scenario Profiles & Presets</h3>
-            <p style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.4)', marginBottom: '12px', lineHeight: '1.3' }}>
-              Simulate standard environment patterns to test AI response curves.
-            </p>
+            <h3 className="chart-title" style={{ marginBottom: '12px' }}>🎛️ Scenario Profiles & Presets</h3>
             <div className="presets-grid-clean">
               <button className="preset-btn normal-preset" onClick={() => applyPreset('normal')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span className="preset-icon">🟢</span>
                   <span style={{ fontWeight: '700' }}>Normal Load</span>
                 </span>
-                <span style={{ fontSize: '0.62rem', opacity: 0.6 }}>Standard Server State</span>
               </button>
               <button className="preset-btn stress-preset" onClick={() => applyPreset('stress')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span className="preset-icon">⚡</span>
                   <span style={{ fontWeight: '700' }}>CPU Stress</span>
                 </span>
-                <span style={{ fontSize: '0.62rem', opacity: 0.6 }}>Spike CPU & Temp</span>
               </button>
               <button className="preset-btn spike-preset" onClick={() => applyPreset('network')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span className="preset-icon">🌐</span>
                   <span style={{ fontWeight: '700' }}>Net Spike</span>
                 </span>
-                <span style={{ fontSize: '0.62rem', opacity: 0.6 }}>Threads & Throughput</span>
               </button>
               <button className="preset-btn memory-preset" onClick={() => applyPreset('memory')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span className="preset-icon">💾</span>
                   <span style={{ fontWeight: '700' }}>Memory Sat</span>
                 </span>
-                <span style={{ fontSize: '0.62rem', opacity: 0.6 }}>Disk I/O & Swap</span>
               </button>
             </div>
           </div>
@@ -472,10 +442,7 @@ export default function MonitorTab({
           {/* Feature Importance Card */}
           {prediction.feature_importance && (
             <div className="glass-card explainability-card">
-              <h3 className="chart-title">🔍 Dynamic Risk Drivers (AI Feature Importance)</h3>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '15px', lineHeight: '1.4' }}>
-                Global weight of metrics in predicting system failure probability.
-              </p>
+              <h3 className="chart-title" style={{ marginBottom: '15px' }}>🔍 Dynamic Risk Drivers (AI Feature Importance)</h3>
               <div className="bar-chart-container">
                 {Object.entries(prediction.feature_importance)
                   .sort((a, b) => b[1] - a[1])
@@ -498,10 +465,7 @@ export default function MonitorTab({
           {/* Prediction Explainer (SHAP Local Contributions) */}
           {prediction.local_explainability && (
             <div className="glass-card explainability-card">
-              <h3 className="chart-title">📊 Prediction Explainer (SHAP Local Contributions)</h3>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '15px', lineHeight: '1.4' }}>
-                Additive contributions of metrics to the current prediction deviation from baseline (~10.0% failure risk).
-              </p>
+              <h3 className="chart-title" style={{ marginBottom: '15px' }}>📊 Prediction Explainer (SHAP Local Contributions)</h3>
               <div className="bar-chart-container">
                 {Object.entries(prediction.local_explainability)
                   .sort((a, b) => b[1] - a[1])
