@@ -5,28 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "backend/**"   # Only trigger when backend files change
-
-jobs:
-  sync-to-hf:
-    name: Push backend to HF Space
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          lfs: true
-
-      name: Sync Backend → Hugging Face Space
-
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - "backend/**"   # Only trigger when backend files change
+      - "backend/**"
 
 jobs:
   sync-to-hf:
@@ -46,20 +25,26 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-          # Clone using the exact case-sensitive Space name from Hugging Face
+          # Clone using explicit secret values with fallbacks
           git clone https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine hf_space
 
-          # Clear old content (keep .git)
+          # Clear old content inside the clone directory (keep .git tracking configuration)
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
-          # Copy backend contents into the space root
+          # Copy backend contents into the space root directory
           cp -r backend/. hf_space/
 
-          # Stage, commit, and push
+          # Move into workspace, stage changes, commit, and push
           cd hf_space
           git add -A
-          git diff --cached --quiet && echo "No changes to sync." && exit 0
+          
+          # Check if there are actual code changes to prevent empty commit errors
+          if git diff --cached --quiet; then
+            echo "No changes to sync."
+            exit 0
+          fi
+          
           git commit -m "sync: auto-deploy from GitHub Actions ($(date -u '+%Y-%m-%d %H:%M UTC'))"
           
-          # Push to the exact case-sensitive Space name
-          git push https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine main
+          # FORCE push to overwrite the remote history and bypass fast-forward rejections
+          git push --force https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine main
