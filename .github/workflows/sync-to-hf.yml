@@ -23,63 +23,99 @@ jobs:
 
       - name: Push backend folder to Hugging Face Space
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_USERNAME: ${{ secrets.HF_USERNAME || vars.HF_USERNAME }}
-          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME || vars.HF_SPACE_NAME }}
+          # Token variations
+          HF_TOKEN_1: ${{ secrets.HF_TOKEN }}
+          HF_TOKEN_2: ${{ secrets.HFTOKEN }}
+          HF_TOKEN_3: ${{ secrets.hftoken }}
+          HF_TOKEN_4: ${{ secrets.HF_WRITE_TOKEN }}
+          # Username variations
+          HF_USERNAME_1: ${{ secrets.HF_USERNAME || vars.HF_USERNAME }}
+          HF_USERNAME_2: ${{ secrets.HFUSERNAME || vars.HFUSERNAME }}
+          HF_USERNAME_3: ${{ secrets.hfusername || vars.hfusername }}
+          HF_USERNAME_4: ${{ secrets.USERNAME || vars.USERNAME }}
+          HF_USERNAME_5: ${{ secrets.username || vars.username }}
+          # Space Name variations
+          HF_SPACE_NAME_1: ${{ secrets.HF_SPACE_NAME || vars.HF_SPACE_NAME }}
+          HF_SPACE_NAME_2: ${{ secrets.HFSPACENAME || vars.HFSPACENAME }}
+          HF_SPACE_NAME_3: ${{ secrets.hfspacename || vars.hfspacename }}
+          HF_SPACE_NAME_4: ${{ secrets.SPACE_NAME || vars.SPACE_NAME }}
+          HF_SPACE_NAME_5: ${{ secrets.spacename || vars.spacename }}
         run: |
           # Configure git identity
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-          # Fallback to defaults if variables are empty
-          USERNAME="${HF_USERNAME:-Chandann-23}"
-          SPACE_NAME="${HF_SPACE_NAME:-Axon-predictive-engine}"
+          # Resolve token
+          HF_TOKEN="${HF_TOKEN_1:-${HF_TOKEN_2:-${HF_TOKEN_3:-$HF_TOKEN_4}}}"
 
-          # Validate token
+          # Resolve username
+          USERNAME="${HF_USERNAME_1:-${HF_USERNAME_2:-${HF_USERNAME_3:-${HF_USERNAME_4:-${HF_USERNAME_5:-Chandann-23}}}}}"
+
+          # Resolve space name
+          SPACE_NAME="${HF_SPACE_NAME_1:-${HF_SPACE_NAME_2:-${HF_SPACE_NAME_3:-${HF_SPACE_NAME_4:-${HF_SPACE_NAME_5:-Axon-predictive-engine}}}}}"
+
+          # Log which variables were successfully detected (without printing values)
+          echo "=== Secrets & Variables Diagnostics ==="
+          if [ -n "$HF_TOKEN_1" ]; then echo "✓ Detected secret: HF_TOKEN"; fi
+          if [ -n "$HF_TOKEN_2" ]; then echo "✓ Detected secret: HFTOKEN"; fi
+          if [ -n "$HF_TOKEN_3" ]; then echo "✓ Detected secret: hftoken"; fi
+          if [ -n "$HF_TOKEN_4" ]; then echo "✓ Detected secret: HF_WRITE_TOKEN"; fi
           if [ -z "$HF_TOKEN" ]; then
-            echo "ERROR: HF_TOKEN is empty or not set in GitHub Secrets!"
-            echo "Please go to your GitHub Repo -> Settings -> Secrets and variables -> Actions and add HF_TOKEN."
+            echo "❌ ERROR: No Hugging Face token secret was found under any supported names (HF_TOKEN, HFTOKEN, hftoken, HF_WRITE_TOKEN)."
+            echo "Please add a repository secret in GitHub Settings > Secrets and variables > Actions."
             exit 1
           fi
 
-          # Use git credential store to handle authentication securely (handles special characters in token)
+          if [ -n "$HF_USERNAME_1" ]; then echo "✓ Detected: HF_USERNAME"; fi
+          if [ -n "$HF_USERNAME_2" ]; then echo "✓ Detected: HFUSERNAME"; fi
+          if [ -n "$HF_USERNAME_3" ]; then echo "✓ Detected: hfusername"; fi
+          if [ -n "$HF_USERNAME_4" ]; then echo "✓ Detected: USERNAME"; fi
+          if [ -n "$HF_USERNAME_5" ]; then echo "✓ Detected: username"; fi
+
+          if [ -n "$HF_SPACE_NAME_1" ]; then echo "✓ Detected: HF_SPACE_NAME"; fi
+          if [ -n "$HF_SPACE_NAME_2" ]; then echo "✓ Detected: HFSPACENAME"; fi
+          if [ -n "$HF_SPACE_NAME_3" ]; then echo "✓ Detected: hfspacename"; fi
+          if [ -n "$HF_SPACE_NAME_4" ]; then echo "✓ Detected: SPACE_NAME"; fi
+          if [ -n "$HF_SPACE_NAME_5" ]; then echo "✓ Detected: spacename"; fi
+
+          echo "Resolved Username: $USERNAME"
+          echo "Resolved Space Name: $SPACE_NAME"
+          echo "========================================"
+
+          # Configure credential helper store (handles special characters in token securely)
           git config --global credential.helper store
           echo "https://$USERNAME:$HF_TOKEN@huggingface.co" > ~/.git-credentials
 
-          echo "Cloning Hugging Face Space: $USERNAME/$SPACE_NAME..."
-          git clone "https://huggingface.co/spaces/$USERNAME/$SPACE_NAME" hf_space 2>clone_err.log || {
-            echo "ERROR: Failed to clone Hugging Face Space."
-            # Mask the token if it somehow got into the error log
-            cat clone_err.log | sed "s/$HF_TOKEN/***TOKEN***/g"
-            exit 1
-          }
+          # Instead of cloning (which fails if remote repo is completely empty with no default branch),
+          # we initialize a new local repo and force-push. This is 100% reliable for both empty and non-empty spaces.
+          echo "Initializing temporary repository for sync..."
+          mkdir hf_sync_dir
+          cd hf_sync_dir
+          git init
+          git checkout -b main
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
 
-          # Clear old content inside the space clone (keep .git tracking configuration)
-          find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
+          # Copy backend files and root .gitignore
+          cp -r ../backend/. .
+          cp ../.gitignore .
 
-          # Copy backend folder contents and root .gitignore to the space
-          cp -r backend/. hf_space/
-          cp .gitignore hf_space/
-
-          # Move into workspace, stage changes, and commit
-          cd hf_space
+          # Stage all files
           git add -A
-          
-          # Check if there are actual code changes to prevent empty commit errors
-          if git diff --quiet && git diff --cached --quiet; then
-            echo "No changes to sync."
-            exit 0
-          fi
-          
+
+          # Commit
           git commit -m "sync: auto-deploy from GitHub Actions ($(date -u '+%Y-%m-%d %H:%M UTC'))"
-          
+
+          # Force-push to Hugging Face
           echo "Pushing changes to Hugging Face Space..."
           git push --force "https://huggingface.co/spaces/$USERNAME/$SPACE_NAME" main 2>push_err.log || {
             echo "ERROR: Failed to push to Hugging Face Space."
+            # Mask token in error log
             cat push_err.log | sed "s/$HF_TOKEN/***TOKEN***/g"
+            rm -f ~/.git-credentials
             exit 1
           }
-          
+
           # Clean up credentials
           rm -f ~/.git-credentials
           echo "Successfully synced to Hugging Face Space!"
