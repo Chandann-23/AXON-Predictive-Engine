@@ -10,12 +10,15 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Databases & MLflow
+*.db
+backend/data/*.db
+mlruns/
+.mlflow/
+
 # Streamlit/OS junk
 .streamlit/config.toml
 .DS_Store
 Thumbs.db
-
-
-# Large Model Files (Optional)
-# If your model is >100MB, you should ignore it and use Git LFS
-# model.joblib
+.vscode/
+.idea/

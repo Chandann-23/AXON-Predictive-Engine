@@ -12,10 +12,16 @@ def generate_logs(num_rows: int = 5000, random_seed: int = 42) -> pd.DataFrame:
     ram_usage = np.clip(rng.normal(loc=68, scale=18, size=num_rows), 10, 100)
     temp_celsius = np.clip(rng.normal(loc=62, scale=16, size=num_rows), 20, 105)
     network_latency = np.clip(rng.normal(loc=120, scale=55, size=num_rows), 5, 350)
+    disk_io = np.clip(rng.normal(loc=35, scale=20, size=num_rows), 0, 100)
+    swap_usage = np.clip(rng.normal(loc=15, scale=12, size=num_rows), 0, 100)
+    net_throughput = np.clip(rng.normal(loc=250, scale=180, size=num_rows), 0, 1000)
+    thread_count = np.clip(rng.normal(loc=350, scale=150, size=num_rows), 50, 1000)
 
     failure = (
         ((cpu_usage > 85) & (temp_celsius > 80))
         | ((ram_usage > 90) & (network_latency > 200))
+        | ((disk_io > 85) & (swap_usage > 75))
+        | ((thread_count > 850) & (cpu_usage > 80))
     ).astype(int)
 
     return pd.DataFrame(
@@ -25,6 +31,10 @@ def generate_logs(num_rows: int = 5000, random_seed: int = 42) -> pd.DataFrame:
             "ram_usage": np.round(ram_usage, 2),
             "temp_celsius": np.round(temp_celsius, 2),
             "network_latency": np.round(network_latency, 2),
+            "disk_io": np.round(disk_io, 2),
+            "swap_usage": np.round(swap_usage, 2),
+            "net_throughput": np.round(net_throughput, 2),
+            "thread_count": np.round(thread_count, 2),
             "failure": failure,
         }
     )

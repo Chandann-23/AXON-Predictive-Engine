@@ -18,14 +18,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
 
       - name: Generate dataset
-        run: python data/generate_logs.py
+        run: python backend/data/generate_logs.py
 
       - name: Train model
-        run: python src/train.py
+        run: python backend/src/train.py
 
       - name: Test model artifact exists
         run: |
-          python -c "from pathlib import Path; assert Path('models/server_model.pkl').exists(), 'models/server_model.pkl not found'; print('Model artifact exists')"
+          python -c "from pathlib import Path; assert Path('backend/models/server_model.pkl').exists(), 'backend/models/server_model.pkl not found'; print('Model artifact exists')"

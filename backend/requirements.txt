@@ -5,9 +5,6 @@ pandas
 numpy
 scikit-learn
 requests
-streamlit
-psutil
-plotly
 mlflow
 sqlalchemy
 psycopg2-binary
