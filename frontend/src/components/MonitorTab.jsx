@@ -263,9 +263,7 @@ export default function MonitorTab({
               value={temp} onChange={(e) => setTemp(parseFloat(e.target.value))}
               disabled={isLive} className="slider-input"
             />
-            <div className="node-footer">
-              <span className="node-footer-label">Threshold: 90.0°C</span>
-            </div>
+
           </div>
 
           {/* Latency Node */}
@@ -279,9 +277,7 @@ export default function MonitorTab({
               value={latency} onChange={(e) => setLatency(parseFloat(e.target.value))}
               disabled={isLive} className="slider-input"
             />
-            <div className="node-footer">
-              <span className="node-footer-label">Threshold: 200ms</span>
-            </div>
+
           </div>
 
           {/* Disk I/O Node */}
@@ -295,9 +291,7 @@ export default function MonitorTab({
               value={diskIo} onChange={(e) => setDiskIo(parseFloat(e.target.value))}
               disabled={isLive} className="slider-input"
             />
-            <div className="node-footer">
-              <span className="node-footer-label">Active Disk I/O</span>
-            </div>
+
           </div>
 
           {/* Swap Usage Node */}
@@ -311,9 +305,7 @@ export default function MonitorTab({
               value={swapUsage} onChange={(e) => setSwapUsage(parseFloat(e.target.value))}
               disabled={isLive} className="slider-input"
             />
-            <div className="node-footer">
-              <span className="node-footer-label">Page File Swap</span>
-            </div>
+
           </div>
 
           {/* Net Throughput Node */}
@@ -327,9 +319,7 @@ export default function MonitorTab({
               value={netThroughput} onChange={(e) => setNetThroughput(parseFloat(e.target.value))}
               disabled={isLive} className="slider-input"
             />
-            <div className="node-footer">
-              <span className="node-footer-label">Max Cap: 1 Gbps</span>
-            </div>
+
           </div>
 
           {/* Thread Count Node */}
@@ -343,9 +333,7 @@ export default function MonitorTab({
               value={threadCount} onChange={(e) => setThreadCount(parseFloat(e.target.value))}
               disabled={isLive} className="slider-input"
             />
-            <div className="node-footer">
-              <span className="node-footer-label">Thread Pool Limit</span>
-            </div>
+
           </div>
         </div>
       </div>
