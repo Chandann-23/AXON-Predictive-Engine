@@ -92,6 +92,7 @@ jobs:
           mkdir hf_sync_dir
           cd hf_sync_dir
           git init
+          git lfs install
           git checkout -b main
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
@@ -100,7 +101,10 @@ jobs:
           cp -r ../backend/. .
           cp ../.gitignore .
 
-          # Stage all files
+          # Configure Git LFS tracking for binary model files (required by Hugging Face)
+          git lfs track "models/*.pkl"
+
+          # Stage all files (including LFS tracking configuration)
           git add -A
 
           # Commit
