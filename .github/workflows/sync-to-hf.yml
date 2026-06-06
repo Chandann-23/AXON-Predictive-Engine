@@ -19,18 +19,35 @@ jobs:
           fetch-depth: 0
           lfs: true
 
+      name: Sync Backend → Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"   # Only trigger when backend files change
+
+jobs:
+  sync-to-hf:
+    name: Push backend to HF Space
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
       - name: Push backend folder to Hugging Face Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_USERNAME: ${{ secrets.HF_USERNAME }}
-          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
         run: |
           # Configure git identity
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-          # Clone the HF Space repo using GitHub context interpolation
-          git clone https://${{ env.HF_USERNAME }}:${{ env.HF_TOKEN }}@huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }} hf_space
+          # Clone using the exact case-sensitive Space name from Hugging Face
+          git clone https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine hf_space
 
           # Clear old content (keep .git)
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
@@ -44,5 +61,5 @@ jobs:
           git diff --cached --quiet && echo "No changes to sync." && exit 0
           git commit -m "sync: auto-deploy from GitHub Actions ($(date -u '+%Y-%m-%d %H:%M UTC'))"
           
-          # Push using GitHub context interpolation
-          git push https://${{ env.HF_USERNAME }}:${{ env.HF_TOKEN }}@huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_NAME }} main
+          # Push to the exact case-sensitive Space name
+          git push https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/Chandann-23/Axon-predictive-engine main
